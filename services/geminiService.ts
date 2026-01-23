@@ -14,7 +14,8 @@ export const getDeepShiftAssistantResponse = async (userMessage: string) => {
   }
 
   // Create a new GoogleGenAI instance right before making an API call
-  const ai = new GoogleGenAI({ apiKey });
+  // We use a fallback string 'MISSING_KEY' only to prevent the constructor from throwing
+  const ai = new GoogleGenAI({ apiKey: apiKey || 'MISSING_KEY' });
 
   try {
     const systemInstruction = `
@@ -68,7 +69,7 @@ export const performSiteSearch = async (query: string) => {
   const apiKey = (window as any).process?.env?.API_KEY;
   if (!apiKey) return [];
 
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: apiKey || 'MISSING_KEY' });
 
   try {
     const response = await ai.models.generateContent({
