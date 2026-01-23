@@ -140,7 +140,7 @@ const About: React.FC = () => {
                 name: "Nalule Grace", 
                 role: "CFO & Sales Manager", 
                 bio: "CPA, Msc, Bsc Account & Finance specialist leading our fiscal strategy and regional growth.", 
-                img: "https://i.postimg.cc/sfmQf6Cw/dolaz-ai-style-(1).png" 
+                img: "https://i.postimg.cc/G2Fq8PFp/NALULE-PHOTO-2.png" 
               },
               { 
                 name: "Prisca Kuula Angela", 

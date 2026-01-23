@@ -1,10 +1,10 @@
-
 import React, { useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import AssistantWidget from './components/AssistantWidget';
 import WhatsappButton from './components/WhatsappButton';
+import AnnouncementPopup from './components/AnnouncementPopup';
 import Home from './pages/Home';
 import Projects from './pages/Projects';
 import Contact from './pages/Contact';
@@ -62,6 +62,7 @@ const App: React.FC = () => {
         <Footer />
         <WhatsappButton />
         <AssistantWidget />
+        <AnnouncementPopup />
       </div>
     </Router>
   );

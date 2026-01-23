@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, 
   CheckCircle2, 
@@ -14,11 +14,25 @@ import {
   Briefcase,
   Sparkles,
   Maximize2,
-  X
+  X,
+  Calendar,
+  MapPin,
+  Newspaper
 } from 'lucide-react';
-import { SERVICES, INDUSTRIES, INITIAL_TRAINING_POSTERS } from '../constants';
+import { SERVICES, INDUSTRIES, INITIAL_TRAINING_POSTERS, INITIAL_NEWS_POSTS } from '../constants';
 import ImageCarousel from '../components/ImageCarousel';
 import TiktokCarousel from '../components/TiktokCarousel';
+
+interface NewsPost {
+  id: string;
+  title: string;
+  date: string;
+  loc: string;
+  desc: string;
+  content: string;
+  tag: string;
+  images?: string[];
+}
 
 interface HeroSlide {
   id: number;
@@ -117,13 +131,19 @@ const TRAINING_HIGHLIGHTS = [
 ];
 
 const Home: React.FC = () => {
+  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [trainingPosters, setTrainingPosters] = useState<string[]>(INITIAL_TRAINING_POSTERS);
   const [selectedPosterIndex, setSelectedPosterIndex] = useState<number | null>(null);
+  const [news, setNews] = useState<NewsPost[]>([]);
+  const newsScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setTrainingPosters(INITIAL_TRAINING_POSTERS);
+    
+    const savedNews = localStorage.getItem('ds_news');
+    setNews(savedNews ? JSON.parse(savedNews) : (INITIAL_NEWS_POSTS as NewsPost[]));
 
     const timer = setInterval(() => {
       handleNext();
@@ -145,6 +165,17 @@ const Home: React.FC = () => {
       setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
       setIsTransitioning(false);
     }, 500);
+  };
+
+  const scrollNews = (direction: 'left' | 'right') => {
+    if (newsScrollRef.current) {
+      const { scrollLeft, clientWidth } = newsScrollRef.current;
+      const scrollAmount = clientWidth * 0.8;
+      newsScrollRef.current.scrollTo({
+        left: direction === 'left' ? scrollLeft - scrollAmount : scrollLeft + scrollAmount,
+        behavior: 'smooth'
+      });
+    }
   };
 
   // Training Modal Navigation
@@ -611,6 +642,98 @@ const Home: React.FC = () => {
             animation: training-ticker 100s linear infinite;
           }
         `}</style>
+      </section>
+
+      {/* Latest News & Events Scrolling Section */}
+      <section className="py-24 bg-gray-50 border-t border-b border-gray-100 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center space-x-2 bg-innovation-blue/10 text-innovation-blue px-4 py-1.5 rounded-full mb-6">
+                <Newspaper className="w-4 h-4" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Latest Insights</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-poppins font-bold text-navy">Corporate Highlights</h2>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link to="/news-events" className="text-innovation-blue font-bold text-sm flex items-center hover:translate-x-2 transition-transform mb-2">
+                View All News <ArrowRight className="ml-2 w-4 h-4" />
+              </Link>
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => scrollNews('left')}
+                  className="p-3 bg-white border border-gray-200 rounded-full text-navy hover:bg-innovation-blue hover:text-white transition-all shadow-sm"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button 
+                  onClick={() => scrollNews('right')}
+                  className="p-3 bg-white border border-gray-200 rounded-full text-navy hover:bg-innovation-blue hover:text-white transition-all shadow-sm"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div 
+          ref={newsScrollRef}
+          className="flex overflow-x-auto gap-8 px-4 sm:px-6 lg:px-8 pb-12 no-scrollbar"
+        >
+          {news.map((item) => (
+            <div 
+              key={item.id} 
+              className="flex-shrink-0 w-[300px] md:w-[400px] bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-100 group hover:shadow-2xl transition-all cursor-pointer select-none"
+              onDoubleClick={() => navigate(`/news-events/${item.id}`)}
+            >
+              <div className="relative aspect-video overflow-hidden">
+                <img 
+                  src={(item.images && item.images[0]) || "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1000"} 
+                  alt={item.title} 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute top-4 left-4">
+                  <span className="bg-innovation-orange text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
+                    {item.tag}
+                  </span>
+                </div>
+              </div>
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <Calendar size={12} className="mr-1.5 text-innovation-blue" /> {item.date}
+                  </div>
+                  <div className="flex items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <MapPin size={12} className="mr-1.5 text-innovation-orange" /> {item.loc}
+                  </div>
+                </div>
+                <h3 className="text-xl font-poppins font-bold text-navy mb-4 group-hover:text-innovation-blue transition-colors leading-tight line-clamp-2">
+                  {item.title}
+                </h3>
+                <p className="text-gray-500 text-xs mb-6 leading-relaxed line-clamp-2">
+                  {item.desc}
+                </p>
+                <Link 
+                  to={`/news-events/${item.id}`}
+                  className="text-innovation-blue font-bold text-xs flex items-center group-hover:translate-x-1 transition-transform"
+                >
+                  Read Story <ChevronRight size={14} className="ml-1" />
+                </Link>
+              </div>
+            </div>
+          ))}
+          <div className="flex-shrink-0 w-[300px] md:w-[400px] bg-navy rounded-[32px] flex flex-col items-center justify-center p-8 text-center border border-white/5 shadow-xl group hover:border-innovation-orange transition-all">
+             <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-6 text-innovation-orange">
+                <Newspaper size={32} />
+             </div>
+             <h3 className="text-white font-poppins font-bold text-2xl mb-4">Stay Shifted</h3>
+             <p className="text-gray-400 text-sm mb-8">Follow our regional AI summits and corporate milestones.</p>
+             <Link to="/news-events" className="bg-innovation-orange text-white px-8 py-3 rounded-xl font-bold hover:shadow-xl hover:shadow-innovation-orange/20 transition-all flex items-center">
+                Explore Lab Archive <ArrowRight className="ml-2 w-4 h-4" />
+             </Link>
+          </div>
+        </div>
       </section>
 
       {/* CTA Ready to Get Started */}

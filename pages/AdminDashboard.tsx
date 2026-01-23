@@ -27,7 +27,14 @@ import {
   MapPin,
   Tag,
   CheckCircle2,
-  GraduationCap
+  GraduationCap,
+  Megaphone,
+  ToggleLeft,
+  ToggleRight,
+  ExternalLink,
+  Clock,
+  MousePointer2,
+  ArrowDown
 } from 'lucide-react';
 import { INITIAL_NEWS_POSTS, INITIAL_GALLERY_IMAGES, INITIAL_TRAINING_POSTERS } from '../constants';
 
@@ -51,6 +58,21 @@ interface JobPosting {
   description: string;
   tags: string[];
   deadline: string;
+}
+
+interface Announcement {
+  id: string;
+  title: string;
+  message: string;
+  image?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  isActive: boolean;
+  type: 'info' | 'promotion' | 'event';
+  // Display Rules
+  triggerType: 'timer' | 'scroll' | 'exit';
+  triggerValue: number; // seconds or percentage
+  frequency: 'once' | 'session' | 'daily';
 }
 
 interface ResourceFile {
@@ -87,15 +109,17 @@ const AdminDashboard: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'news' | 'gallery' | 'resources' | 'jobs' | 'training'>('news');
+  const [activeTab, setActiveTab] = useState<'news' | 'jobs' | 'training' | 'gallery' | 'resources' | 'announcements'>('news');
   const [news, setNews] = useState<NewsPost[]>([]);
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [gallery, setGallery] = useState<string[]>([]);
   const [trainingPosters, setTrainingPosters] = useState<string[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [investorDeck, setInvestorDeck] = useState<ResourceFile | null>(null);
   
   const [editingPost, setEditingPost] = useState<NewsPost | null>(null);
   const [editingJob, setEditingJob] = useState<JobPosting | null>(null);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
 
   const [newPost, setNewPost] = useState<Omit<NewsPost, 'id'>>({ 
     title: '', 
@@ -117,10 +141,22 @@ const AdminDashboard: React.FC = () => {
     deadline: ''
   });
 
+  const [newAnnouncement, setNewAnnouncement] = useState<Omit<Announcement, 'id'>>({
+    title: '',
+    message: '',
+    image: '',
+    ctaText: '',
+    ctaLink: '',
+    isActive: false,
+    type: 'info',
+    triggerType: 'timer',
+    triggerValue: 3,
+    frequency: 'session'
+  });
+
   const [jobTagInput, setJobTagInput] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [trainingImageUrl, setTrainingImageUrl] = useState('');
-  const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const trainingFileInputRef = useRef<HTMLInputElement>(null);
   const deckInputRef = useRef<HTMLInputElement>(null);
@@ -136,6 +172,7 @@ const AdminDashboard: React.FC = () => {
     const savedTraining = localStorage.getItem('ds_training_posters');
     const savedDeck = localStorage.getItem('ds_investor_deck');
     const savedJobs = localStorage.getItem('ds_jobs');
+    const savedAnnouncements = localStorage.getItem('ds_announcements');
     
     if (savedNews) setNews(JSON.parse(savedNews));
     else {
@@ -161,6 +198,8 @@ const AdminDashboard: React.FC = () => {
       localStorage.setItem('ds_jobs', JSON.stringify(JOBS_DATA_INITIAL));
     }
 
+    if (savedAnnouncements) setAnnouncements(JSON.parse(savedAnnouncements));
+
     if (savedDeck) setInvestorDeck(JSON.parse(savedDeck));
   }, []);
 
@@ -183,11 +222,7 @@ const AdminDashboard: React.FC = () => {
 
   const saveNews = (updatedNews: NewsPost[]) => {
     setNews(updatedNews);
-    try {
-      localStorage.setItem('ds_news', JSON.stringify(updatedNews));
-    } catch (e) {
-      alert("Storage limit reached.");
-    }
+    localStorage.setItem('ds_news', JSON.stringify(updatedNews));
   };
 
   const saveJobs = (updatedJobs: JobPosting[]) => {
@@ -205,6 +240,42 @@ const AdminDashboard: React.FC = () => {
     localStorage.setItem('ds_training_posters', JSON.stringify(updated));
   };
 
+  const saveAnnouncements = (updated: Announcement[]) => {
+    setAnnouncements(updated);
+    localStorage.setItem('ds_announcements', JSON.stringify(updated));
+  };
+
+  // --- ANNOUNCEMENTS LOGIC ---
+  const handleAddAnnouncement = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updated = [{ ...newAnnouncement, id: Date.now().toString() }, ...announcements];
+    saveAnnouncements(updated);
+    setNewAnnouncement({ title: '', message: '', image: '', ctaText: '', ctaLink: '', isActive: false, type: 'info', triggerType: 'timer', triggerValue: 3, frequency: 'session' });
+  };
+
+  const handleEditAnnouncement = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAnnouncement) return;
+    const updated = announcements.map(a => a.id === editingAnnouncement.id ? editingAnnouncement : a);
+    saveAnnouncements(updated);
+    setEditingAnnouncement(null);
+  };
+
+  const toggleAnnouncement = (id: string) => {
+    const updated = announcements.map(a => 
+      a.id === id ? { ...a, isActive: !a.isActive } : { ...a, isActive: false }
+    );
+    saveAnnouncements(updated);
+  };
+
+  const handleDeleteAnnouncement = (id: string) => {
+    if (window.confirm('Are you sure you want to permanently delete this announcement?')) {
+      const updated = announcements.filter(a => a.id !== id);
+      saveAnnouncements(updated);
+    }
+  };
+
+  // --- JOBS LOGIC ---
   const handleAddJob = (e: React.FormEvent) => {
     e.preventDefault();
     const updated = [{ ...newJob, id: Date.now().toString() }, ...jobs];
@@ -222,12 +293,13 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleDeleteJob = (id: string) => {
-    if (window.confirm('Delete this job posting?')) {
+    if (window.confirm('Delete this job posting forever?')) {
       const updated = jobs.filter(j => j.id !== id);
       saveJobs(updated);
     }
   };
 
+  // --- TAG HANDLING ---
   const handleJobTagKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && jobTagInput.trim()) {
       e.preventDefault();
@@ -271,7 +343,6 @@ const AdminDashboard: React.FC = () => {
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve) => {
         reader.onload = () => resolve(reader.result as string);
-        // Explicitly cast file to Blob to satisfy TypeScript's readAsDataURL expectations
         reader.readAsDataURL(file as Blob);
       });
       newImageStrings.push(base64);
@@ -292,7 +363,6 @@ const AdminDashboard: React.FC = () => {
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve) => {
         reader.onload = () => resolve(reader.result as string);
-        // Explicitly cast file to Blob to satisfy TypeScript's readAsDataURL expectations
         reader.readAsDataURL(file as Blob);
       });
       newStrings.push(base64);
@@ -411,20 +481,23 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap gap-1 bg-gray-200 p-1 rounded-2xl w-fit mb-8">
-          <button onClick={() => setActiveTab('news')} className={`px-6 py-3 rounded-xl text-sm font-bold flex items-center transition-all ${activeTab === 'news' ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-navy'}`}>
-            <Newspaper size={18} className="mr-2" /> News
+          <button onClick={() => setActiveTab('news')} className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center transition-all ${activeTab === 'news' ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-navy'}`}>
+            <Newspaper size={16} className="mr-2" /> News
           </button>
-          <button onClick={() => setActiveTab('jobs')} className={`px-6 py-3 rounded-xl text-sm font-bold flex items-center transition-all ${activeTab === 'jobs' ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-navy'}`}>
-            <Briefcase size={18} className="mr-2" /> Jobs
+          <button onClick={() => setActiveTab('announcements')} className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center transition-all ${activeTab === 'announcements' ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-navy'}`}>
+            <Megaphone size={16} className="mr-2" /> Pop-ups
           </button>
-          <button onClick={() => setActiveTab('training')} className={`px-6 py-3 rounded-xl text-sm font-bold flex items-center transition-all ${activeTab === 'training' ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-navy'}`}>
-            <GraduationCap size={18} className="mr-2" /> Training
+          <button onClick={() => setActiveTab('jobs')} className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center transition-all ${activeTab === 'jobs' ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-navy'}`}>
+            <Briefcase size={16} className="mr-2" /> Jobs
           </button>
-          <button onClick={() => setActiveTab('gallery')} className={`px-6 py-3 rounded-xl text-sm font-bold flex items-center transition-all ${activeTab === 'gallery' ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-navy'}`}>
-            <ImageIcon size={18} className="mr-2" /> Gallery
+          <button onClick={() => setActiveTab('training')} className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center transition-all ${activeTab === 'training' ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-navy'}`}>
+            <GraduationCap size={16} className="mr-2" /> Training
           </button>
-          <button onClick={() => setActiveTab('resources')} className={`px-6 py-3 rounded-xl text-sm font-bold flex items-center transition-all ${activeTab === 'resources' ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-navy'}`}>
-            <FileText size={18} className="mr-2" /> Resources
+          <button onClick={() => setActiveTab('gallery')} className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center transition-all ${activeTab === 'gallery' ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-navy'}`}>
+            <ImageIcon size={16} className="mr-2" /> Gallery
+          </button>
+          <button onClick={() => setActiveTab('resources')} className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center transition-all ${activeTab === 'resources' ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-navy'}`}>
+            <FileText size={16} className="mr-2" /> Resources
           </button>
         </div>
 
@@ -471,47 +544,137 @@ const AdminDashboard: React.FC = () => {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Short Description (Summary Card)</label>
-                      <textarea required placeholder="Short summary for the listing page..." rows={2} className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" value={editingPost ? editingPost.desc : newPost.desc} onChange={e => editingPost ? setEditingPost({...editingPost, desc: e.target.value}) : setNewPost({...newPost, desc: e.target.value})} />
+                      <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Short Description</label>
+                      <textarea required placeholder="Short summary..." rows={2} className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" value={editingPost ? editingPost.desc : newPost.desc} onChange={e => editingPost ? setEditingPost({...editingPost, desc: e.target.value}) : setNewPost({...newPost, desc: e.target.value})} />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Full Post Content</label>
-                      <textarea required placeholder="The complete article text..." rows={8} className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" value={editingPost ? editingPost.content : newPost.content} onChange={e => editingPost ? setEditingPost({...editingPost, content: e.target.value}) : setNewPost({...newPost, content: e.target.value})} />
+                      <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Full Content</label>
+                      <textarea required placeholder="Article text..." rows={8} className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" value={editingPost ? editingPost.content : newPost.content} onChange={e => editingPost ? setEditingPost({...editingPost, content: e.target.value}) : setNewPost({...newPost, content: e.target.value})} />
                     </div>
 
                     <div className="space-y-3 pt-2">
-                       <label className="text-[10px] font-bold text-gray-400 uppercase px-1 flex justify-between items-center">
-                         Images
-                         <span className="text-[9px] lowercase italic text-gray-300">{(editingPost ? editingPost.images : newPost.images)?.length || 0} attached</span>
-                       </label>
-                       
-                       <div className="flex flex-wrap gap-2 mb-3">
+                       <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Images</label>
+                       <div className="flex flex-wrap gap-2">
                          {(editingPost ? editingPost.images : newPost.images)?.map((img, idx) => (
-                           <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-100 group">
+                           <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden group">
                               <img src={img} className="w-full h-full object-cover" alt="" />
                               <button type="button" onClick={() => removeNewsImage(idx)} className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Trash2 size={12} />
                               </button>
                            </div>
                          ))}
-                         <button type="button" onClick={() => fileInputRef.current?.click()} className="w-12 h-12 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:border-innovation-orange hover:text-innovation-orange transition-all">
+                         <button type="button" onClick={() => fileInputRef.current?.click()} className="w-12 h-12 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:border-innovation-orange transition-all">
                            <Plus size={16} />
                          </button>
                          <input type="file" ref={fileInputRef} hidden multiple accept="image/*" onChange={handleNewsFileChange} />
                        </div>
-
-                       <div className="flex gap-2">
-                         <input placeholder="Or paste image URL..." className="flex-1 bg-gray-50 border-none rounded-xl px-4 py-2 text-xs focus:ring-2 focus:ring-innovation-orange" value={newImageUrl} onChange={e => setNewImageUrl(e.target.value)} />
-                         <button type="button" onClick={addImageUrlToNews} className="px-3 bg-gray-100 rounded-xl hover:bg-gray-200"><Plus size={14} /></button>
-                       </div>
                     </div>
 
                     <div className="flex gap-2 pt-4">
-                      <button type="submit" className="flex-1 bg-navy text-white py-3 rounded-xl font-bold flex items-center justify-center hover:bg-innovation-orange transition-all">
+                      <button type="submit" className="flex-1 bg-navy text-white py-3 rounded-xl font-bold hover:bg-innovation-orange transition-all">
                         <Save size={18} className="mr-2" /> {editingPost ? 'Update' : 'Publish'}
                       </button>
-                      {editingPost && <button type="button" onClick={() => setEditingPost(null)} className="p-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all"><X size={20} /></button>}
+                      {editingPost && <button type="button" onClick={() => setEditingPost(null)} className="p-3 bg-gray-100 rounded-xl"><X size={20} /></button>}
+                    </div>
+                  </form>
+                </>
+              )}
+
+              {activeTab === 'announcements' && (
+                <>
+                  <h3 className="text-xl font-poppins font-bold text-navy mb-6">{editingAnnouncement ? 'Edit Pop-up' : 'Create Pop-up'}</h3>
+                  <form onSubmit={editingAnnouncement ? handleEditAnnouncement : handleAddAnnouncement} className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Headline</label>
+                        <input required placeholder="e.g. New Feature Live!" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" value={editingAnnouncement ? editingAnnouncement.title : newAnnouncement.title} onChange={e => editingAnnouncement ? setEditingAnnouncement({...editingAnnouncement, title: e.target.value}) : setNewAnnouncement({...newAnnouncement, title: e.target.value})} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Message</label>
+                        <textarea required placeholder="Message details..." rows={3} className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" value={editingAnnouncement ? editingAnnouncement.message : newAnnouncement.message} onChange={e => editingAnnouncement ? setEditingAnnouncement({...editingAnnouncement, message: e.target.value}) : setNewAnnouncement({...newAnnouncement, message: e.target.value})} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Image URL</label>
+                        <input placeholder="https://..." className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" value={editingAnnouncement ? editingAnnouncement.image : newAnnouncement.image} onChange={e => editingAnnouncement ? setEditingAnnouncement({...editingAnnouncement, image: e.target.value}) : setNewAnnouncement({...newAnnouncement, image: e.target.value})} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t border-gray-100">
+                      <h4 className="text-[10px] font-black text-navy uppercase tracking-widest flex items-center">
+                        <Settings size={14} className="mr-2" /> Display Rules
+                      </h4>
+                      <div className="grid grid-cols-1 gap-4">
+                         <div className="space-y-1">
+                           <label className="text-[10px] font-bold text-gray-400 uppercase">Trigger Event</label>
+                           <div className="grid grid-cols-3 gap-2">
+                             {[
+                               { id: 'timer', icon: <Clock size={12}/>, label: 'Delay' },
+                               { id: 'scroll', icon: <ArrowDown size={12}/>, label: 'Scroll' },
+                               { id: 'exit', icon: <MousePointer2 size={12}/>, label: 'Exit' }
+                             ].map(t => (
+                               <button 
+                                 key={t.id}
+                                 type="button"
+                                 onClick={() => editingAnnouncement ? setEditingAnnouncement({...editingAnnouncement, triggerType: t.id as any}) : setNewAnnouncement({...newAnnouncement, triggerType: t.id as any})}
+                                 className={`flex flex-col items-center justify-center p-2 rounded-xl border text-[10px] font-bold transition-all ${
+                                   (editingAnnouncement ? editingAnnouncement.triggerType : newAnnouncement.triggerType) === t.id 
+                                   ? 'bg-navy text-white border-navy shadow-md' 
+                                   : 'bg-white text-gray-400 border-gray-100 hover:bg-gray-50'
+                                 }`}
+                               >
+                                 {t.icon}
+                                 <span className="mt-1">{t.label}</span>
+                               </button>
+                             ))}
+                           </div>
+                         </div>
+
+                         {(editingAnnouncement ? editingAnnouncement.triggerType : newAnnouncement.triggerType) !== 'exit' && (
+                           <div className="space-y-1">
+                             <label className="text-[10px] font-bold text-gray-400 uppercase">
+                               {(editingAnnouncement ? editingAnnouncement.triggerType : newAnnouncement.triggerType) === 'timer' ? 'Delay (Seconds)' : 'Scroll Depth (%)'}
+                             </label>
+                             <input 
+                               type="number" 
+                               className="w-full bg-gray-50 rounded-xl px-4 py-2 text-sm"
+                               value={editingAnnouncement ? editingAnnouncement.triggerValue : newAnnouncement.triggerValue} 
+                               onChange={e => editingAnnouncement ? setEditingAnnouncement({...editingAnnouncement, triggerValue: parseInt(e.target.value)}) : setNewAnnouncement({...newAnnouncement, triggerValue: parseInt(e.target.value)})}
+                             />
+                           </div>
+                         )}
+
+                         <div className="space-y-1">
+                           <label className="text-[10px] font-bold text-gray-400 uppercase">Frequency Capping</label>
+                           <select 
+                             className="w-full bg-gray-50 rounded-xl px-4 py-2 text-xs font-bold"
+                             value={editingAnnouncement ? editingAnnouncement.frequency : newAnnouncement.frequency}
+                             onChange={e => editingAnnouncement ? setEditingAnnouncement({...editingAnnouncement, frequency: e.target.value as any}) : setNewAnnouncement({...newAnnouncement, frequency: e.target.value as any})}
+                           >
+                             <option value="session">Once per Session</option>
+                             <option value="daily">Once every 24 Hours</option>
+                             <option value="once">Only Once (Lifetime)</option>
+                           </select>
+                         </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase px-1">CTA Label</label>
+                        <input placeholder="e.g. Learn More" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" value={editingAnnouncement ? editingAnnouncement.ctaText : newAnnouncement.ctaText} onChange={e => editingAnnouncement ? setEditingAnnouncement({...editingAnnouncement, ctaText: e.target.value}) : setNewAnnouncement({...newAnnouncement, ctaText: e.target.value})} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase px-1">CTA Link</label>
+                        <input placeholder="/solutions" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" value={editingAnnouncement ? editingAnnouncement.ctaLink : newAnnouncement.ctaLink} onChange={e => editingAnnouncement ? setEditingAnnouncement({...editingAnnouncement, ctaLink: e.target.value}) : setNewAnnouncement({...newAnnouncement, ctaLink: e.target.value})} />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <button type="submit" className="flex-1 bg-navy text-white py-3 rounded-xl font-bold flex items-center justify-center hover:bg-innovation-orange transition-all">
+                        <Save size={18} className="mr-2" /> {editingAnnouncement ? 'Save Changes' : 'Create Pop-up'}
+                      </button>
+                      {editingAnnouncement && <button type="button" onClick={() => setEditingAnnouncement(null)} className="p-3 bg-gray-100 rounded-xl"><X size={20} /></button>}
                     </div>
                   </form>
                 </>
@@ -523,12 +686,12 @@ const AdminDashboard: React.FC = () => {
                   <form onSubmit={editingJob ? handleEditJob : handleAddJob} className="space-y-4">
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Job Title</label>
-                      <input required placeholder="e.g. AI Research Lead" className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" value={editingJob ? editingJob.title : newJob.title} onChange={e => editingJob ? setEditingJob({...editingJob, title: e.target.value}) : setNewJob({...newJob, title: e.target.value})} />
+                      <input required placeholder="e.g. AI Engineer" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" value={editingJob ? editingJob.title : newJob.title} onChange={e => editingJob ? setEditingJob({...editingJob, title: e.target.value}) : setNewJob({...newJob, title: e.target.value})} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Department</label>
-                        <select className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm" value={editingJob ? editingJob.department : newJob.department} onChange={e => editingJob ? setEditingJob({...editingJob, department: e.target.value}) : setNewJob({...newJob, department: e.target.value})}>
+                        <select className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm" value={editingJob ? editingJob.department : newJob.department} onChange={e => editingJob ? setEditingJob({...editingJob, department: e.target.value}) : setNewJob({...newJob, department: e.target.value})}>
                           <option>Engineering</option>
                           <option>Research</option>
                           <option>Growth</option>
@@ -537,7 +700,7 @@ const AdminDashboard: React.FC = () => {
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Type</label>
-                        <select className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm" value={editingJob ? editingJob.type : newJob.type} onChange={e => editingJob ? setEditingJob({...editingJob, type: e.target.value}) : setNewJob({...newJob, type: e.target.value})}>
+                        <select className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm" value={editingJob ? editingJob.type : newJob.type} onChange={e => editingJob ? setEditingJob({...editingJob, type: e.target.value}) : setNewJob({...newJob, type: e.target.value})}>
                           <option>Full-time</option>
                           <option>Contract</option>
                           <option>Hybrid</option>
@@ -546,31 +709,27 @@ const AdminDashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Location</label>
-                      <input required placeholder="Location" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm" value={editingJob ? editingJob.location : newJob.location} onChange={e => editingJob ? setEditingJob({...editingJob, location: e.target.value}) : setNewJob({...newJob, location: e.target.value})} />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Application Deadline</label>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Deadline</label>
                       <input required type="date" className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm" value={editingJob ? editingJob.deadline : newJob.deadline} onChange={e => editingJob ? setEditingJob({...editingJob, deadline: e.target.value}) : setNewJob({...newJob, deadline: e.target.value})} />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Detailed Description</label>
-                      <textarea required placeholder="Job Description (Detailed)" rows={6} className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm" value={editingJob ? editingJob.description : newJob.description} onChange={e => editingJob ? setEditingJob({...editingJob, description: e.target.value}) : setNewJob({...newJob, description: e.target.value})} />
+                      <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Description</label>
+                      <textarea required placeholder="Detailed description..." rows={6} className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm" value={editingJob ? editingJob.description : newJob.description} onChange={e => editingJob ? setEditingJob({...editingJob, description: e.target.value}) : setNewJob({...newJob, description: e.target.value})} />
                     </div>
                     
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Tags (Press Enter)</label>
-                      <input placeholder="Add tag..." className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm" value={jobTagInput} onChange={e => setJobTagInput(e.target.value)} onKeyPress={handleJobTagKeyPress} />
-                      <div className="flex flex-wrap gap-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Tags (Enter)</label>
+                      <input placeholder="Add tag..." className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm" value={jobTagInput} onChange={e => setJobTagInput(e.target.value)} onKeyPress={handleJobTagKeyPress} />
+                      <div className="flex flex-wrap gap-2 mt-2">
                         {(editingJob ? editingJob.tags : newJob.tags).map(t => (
-                          <span key={t} className="bg-gray-100 text-navy px-2 py-1 rounded-lg text-xs flex items-center">
+                          <span key={t} className="bg-gray-100 text-navy px-2 py-1 rounded-lg text-[10px] font-bold flex items-center">
                             {t} <button type="button" onClick={() => removeJobTag(t)} className="ml-1 text-red-400 hover:text-red-600"><X size={10}/></button>
                           </span>
                         ))}
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 pt-4">
                       <button type="submit" className="flex-1 bg-navy text-white py-3 rounded-xl font-bold flex items-center justify-center">
                         <Save size={18} className="mr-2" /> {editingJob ? 'Update' : 'Post Job'}
                       </button>
@@ -591,47 +750,18 @@ const AdminDashboard: React.FC = () => {
                   }} 
                   className="space-y-6"
                 >
-                  <h3 className="text-xl font-poppins font-bold text-navy flex items-center">
-                    <GraduationCap className="mr-2 text-innovation-orange" /> Add Training Poster
-                  </h3>
-                  
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Upload Local Image</label>
-                    <div 
-                      onClick={() => trainingFileInputRef.current?.click()}
-                      className="border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-all"
-                    >
-                      <Upload className="text-gray-300 mb-2" size={24} />
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Direct Upload</span>
-                      <input 
-                        type="file" 
-                        ref={trainingFileInputRef} 
-                        hidden 
-                        multiple 
-                        accept="image/*" 
-                        onChange={handleTrainingFileUpload} 
-                      />
-                    </div>
+                  <h3 className="text-xl font-poppins font-bold text-navy">Add Training Poster</h3>
+                  <div 
+                    onClick={() => trainingFileInputRef.current?.click()}
+                    className="border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
+                  >
+                    <Upload className="text-gray-300 mb-2" size={32} />
+                    <span className="text-xs font-bold text-gray-400">Upload Image File</span>
+                    <input type="file" ref={trainingFileInputRef} hidden multiple accept="image/*" onChange={handleTrainingFileUpload} />
                   </div>
-
-                  <div className="relative py-2 text-center">
-                     <span className="bg-white px-2 text-[10px] text-gray-300 font-bold uppercase z-10 relative">Or</span>
-                     <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gray-100"></div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">External Image URL</label>
-                    <input 
-                      placeholder="https://..." 
-                      className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" 
-                      value={trainingImageUrl} 
-                      onChange={e => setTrainingImageUrl(e.target.value)} 
-                    />
-                  </div>
-
-                  <button type="submit" className="w-full bg-navy text-white py-4 rounded-xl font-bold flex items-center justify-center hover:bg-innovation-orange transition-all">
-                    <Plus size={18} className="mr-2" /> Add Poster to Loop
-                  </button>
+                  <div className="relative py-2 text-center text-[10px] font-bold text-gray-300 uppercase tracking-widest">Or URL</div>
+                  <input placeholder="https://..." className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-innovation-orange" value={trainingImageUrl} onChange={e => setTrainingImageUrl(e.target.value)} />
+                  <button type="submit" className="w-full bg-navy text-white py-4 rounded-xl font-bold">Add to Loop</button>
                 </form>
               )}
 
@@ -646,28 +776,22 @@ const AdminDashboard: React.FC = () => {
               {activeTab === 'resources' && (
                 <div className="space-y-6">
                   <h3 className="text-xl font-poppins font-bold text-navy">Manage Resources</h3>
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Investor Deck (PDF)</label>
-                    <div 
-                      onClick={() => deckInputRef.current?.click()}
-                      className={`border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all ${
-                        investorDeck ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 hover:border-innovation-orange'
-                      }`}
-                    >
-                      <input type="file" ref={deckInputRef} hidden accept="application/pdf" onChange={handleDeckUpload} />
-                      {investorDeck ? (
-                        <>
-                          <CheckCircle2 className="text-green-500 mb-2" size={32} />
-                          <span className="text-xs font-bold text-navy">{investorDeck.name}</span>
-                          <span className="text-[10px] text-gray-400 mt-1">Click to replace</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="text-gray-300 mb-2" size={32} />
-                          <span className="text-xs font-bold text-gray-400">Upload PDF Deck</span>
-                        </>
-                      )}
-                    </div>
+                  <div 
+                    onClick={() => deckInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-3xl p-10 flex flex-col items-center justify-center cursor-pointer ${investorDeck ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}
+                  >
+                    <input type="file" ref={deckInputRef} hidden accept="application/pdf" onChange={handleDeckUpload} />
+                    {investorDeck ? (
+                      <>
+                        <CheckCircle2 className="text-green-500 mb-2" size={32} />
+                        <span className="text-xs font-bold text-navy">{investorDeck.name}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="text-gray-300 mb-2" size={32} />
+                        <span className="text-xs font-bold text-gray-400">Upload Investor Deck (PDF)</span>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -680,23 +804,58 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-4">
                   <h3 className="font-poppins font-bold text-navy">Manage News Posts ({news.length})</h3>
                   {news.map(p => (
-                    <div key={p.id} className="p-4 bg-gray-50 rounded-2xl flex justify-between items-center hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200">
-                      <div className="truncate pr-4 flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-white rounded-lg overflow-hidden border border-gray-100 shrink-0">
-                          {p.images && p.images.length > 0 ? (
-                            <img src={p.images[0]} className="w-full h-full object-cover" alt="" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-50 text-gray-200"><ImageIcon size={18}/></div>
-                          )}
+                    <div key={p.id} className="p-4 bg-gray-50 rounded-2xl flex justify-between items-center group border border-transparent hover:border-gray-200">
+                      <div className="truncate flex items-center gap-4">
+                        <div className="w-10 h-10 bg-white rounded-lg overflow-hidden shrink-0 border">
+                           <img src={p.images?.[0] || INITIAL_GALLERY_IMAGES[0]} className="w-full h-full object-cover" alt="" />
                         </div>
                         <div className="truncate">
-                          <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">{p.date} • {p.tag}</div>
+                          <div className="text-[10px] text-gray-400 font-bold uppercase">{p.date} • {p.tag}</div>
                           <div className="font-bold text-navy truncate">{p.title}</div>
                         </div>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-2 shrink-0">
                         <button onClick={() => {setEditingPost(p); window.scrollTo(0,0);}} className="p-2 bg-white text-gray-400 hover:text-innovation-blue rounded-lg shadow-sm"><Edit3 size={16}/></button>
-                        <button onClick={() => { if(window.confirm('Delete this post?')) saveNews(news.filter(x => x.id !== p.id)) }} className="p-2 bg-white text-gray-400 hover:text-red-500 rounded-lg shadow-sm"><Trash2 size={16}/></button>
+                        <button onClick={() => { if(window.confirm('Delete post?')) saveNews(news.filter(x => x.id !== p.id)) }} className="p-2 bg-white text-gray-400 hover:text-red-500 rounded-lg shadow-sm"><Trash2 size={16}/></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activeTab === 'announcements' && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-poppins font-bold text-navy">Site Announcements ({announcements.length})</h3>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase italic">Only 1 pop-up can be active</p>
+                  </div>
+                  {announcements.length === 0 && <p className="text-center py-20 text-gray-400 italic">No pop-ups created yet.</p>}
+                  {announcements.map(a => (
+                    <div key={a.id} className={`p-6 rounded-[32px] border-2 transition-all ${a.isActive ? 'bg-innovation-blue/5 border-innovation-blue/20' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}>
+                      <div className="flex justify-between items-start">
+                        <div className="flex gap-4">
+                          <div className="w-16 h-16 bg-white rounded-2xl overflow-hidden border border-gray-100 flex items-center justify-center shrink-0">
+                            {a.image ? <img src={a.image} className="w-full h-full object-cover" alt="" /> : <Megaphone className="text-gray-200" />}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                               <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${a.isActive ? 'bg-innovation-blue text-white' : 'bg-navy text-white'}`}>{a.type}</span>
+                               {a.isActive && <span className="bg-green-500 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full animate-pulse">Live</span>}
+                            </div>
+                            <h4 className="font-bold text-navy text-lg leading-tight">{a.title}</h4>
+                            <div className="flex items-center gap-3 mt-2 text-[9px] text-gray-400 font-bold uppercase">
+                              <span className="flex items-center"><Clock size={10} className="mr-1"/> {a.triggerType} ({a.triggerValue}{a.triggerType === 'scroll' ? '%' : 's'})</span>
+                              <span className="flex items-center"><UserIcon size={10} className="mr-1"/> {a.frequency}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                           <button onClick={() => toggleAnnouncement(a.id)} className={`p-2 rounded-xl transition-all ${a.isActive ? 'bg-innovation-blue text-white shadow-lg' : 'bg-white text-gray-300 hover:text-navy shadow-sm'}`}>
+                             {a.isActive ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                           </button>
+                           <button onClick={() => {setEditingAnnouncement(a); window.scrollTo(0,0);}} className="p-2 bg-white text-gray-400 hover:text-innovation-orange rounded-xl shadow-sm"><Edit3 size={18}/></button>
+                           <button onClick={() => handleDeleteAnnouncement(a.id)} className="p-2 bg-white text-gray-400 hover:text-red-500 rounded-xl shadow-sm"><Trash2 size={18}/></button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -706,21 +865,18 @@ const AdminDashboard: React.FC = () => {
               {activeTab === 'jobs' && (
                 <div className="space-y-4">
                   <h3 className="font-poppins font-bold text-navy">Manage Job Postings ({jobs.length})</h3>
-                  {jobs.length === 0 && <p className="text-center py-20 text-gray-400 italic">No job postings available.</p>}
+                  {jobs.length === 0 && <p className="text-center py-20 text-gray-400 italic">No jobs available.</p>}
                   {jobs.map(j => (
                     <div key={j.id} className="p-5 bg-gray-50 rounded-3xl flex justify-between items-center group hover:bg-white hover:shadow-lg transition-all border border-transparent hover:border-gray-100">
-                      <div className="truncate max-w-md">
-                        <div className="flex items-center space-x-2 mb-1">
+                      <div className="truncate pr-4">
+                        <div className="flex items-center gap-2 mb-1">
                           <span className="text-[10px] font-bold text-innovation-orange uppercase">{j.department}</span>
-                          <span className="text-[10px] font-bold text-gray-400">• {j.type}</span>
+                          <span className="text-[10px] text-gray-400">• {j.type}</span>
                         </div>
-                        <div className="font-bold text-navy truncate text-lg">{j.title}</div>
-                        <div className="flex items-center text-[10px] text-gray-400 font-bold space-x-3">
-                          <span>{j.location}</span>
-                          <span className="text-red-400 flex items-center"><Calendar size={10} className="mr-1"/> Deadline: {j.deadline}</span>
-                        </div>
+                        <div className="font-bold text-navy truncate text-lg leading-tight">{j.title}</div>
+                        <div className="text-[10px] text-gray-400 font-bold mt-1">Deadline: {j.deadline}</div>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-2 shrink-0">
                         <button onClick={() => {setEditingJob(j); window.scrollTo(0,0);}} className="p-3 bg-white text-gray-400 hover:text-innovation-blue rounded-xl shadow-sm"><Edit3 size={18}/></button>
                         <button onClick={() => handleDeleteJob(j.id)} className="p-3 bg-white text-gray-400 hover:text-red-500 rounded-xl shadow-sm"><Trash2 size={18}/></button>
                       </div>
@@ -730,41 +886,24 @@ const AdminDashboard: React.FC = () => {
               )}
 
               {activeTab === 'training' && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-poppins font-bold text-navy">Training Posters ({trainingPosters.length})</h3>
-                    <button onClick={() => { if(window.confirm('Reset to default posters?')) saveTraining(INITIAL_TRAINING_POSTERS) }} className="text-[10px] font-bold text-gray-400 hover:text-innovation-orange uppercase tracking-widest">Reset Defaults</button>
-                  </div>
-                  
-                  {trainingPosters.length === 0 ? (
-                    <div className="text-center py-20 bg-gray-50 rounded-[32px] border border-dashed border-gray-200">
-                       <GraduationCap className="mx-auto mb-4 text-gray-200" size={48} />
-                       <p className="text-gray-400 italic">No posters added to the ticker.</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {trainingPosters.map((url, idx) => (
+                    <div key={idx} className="relative aspect-[3/4] rounded-2xl overflow-hidden group shadow-sm bg-gray-50 border">
+                      <img src={url} className="w-full h-full object-cover" alt="" />
+                      <div className="absolute inset-0 bg-navy/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button onClick={() => saveTraining(trainingPosters.filter((_, i) => i !== idx))} className="p-2 bg-red-500 text-white rounded-lg hover:scale-110 transition-transform">
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {trainingPosters.map((url, idx) => (
-                        <div key={idx} className="relative aspect-[3/4] rounded-2xl overflow-hidden group border border-gray-100 shadow-sm bg-gray-50">
-                          <img src={url} className="w-full h-full object-cover" alt="" />
-                          <div className="absolute inset-0 bg-navy/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <button onClick={() => saveTraining(trainingPosters.filter((_, i) => i !== idx))} className="p-2 bg-red-500 text-white rounded-lg hover:scale-110 transition-transform">
-                              <Trash2 size={20} />
-                            </button>
-                          </div>
-                          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded text-[8px] font-bold text-navy shadow">
-                            Slide #{trainingPosters.length - idx}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  ))}
                 </div>
               )}
 
               {activeTab === 'gallery' && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {gallery.map((url, idx) => (
-                    <div key={idx} className="relative aspect-video rounded-2xl overflow-hidden group border border-gray-100">
+                    <div key={idx} className="relative aspect-video rounded-2xl overflow-hidden group border">
                       <img src={url} className="w-full h-full object-cover" alt="" />
                       <div className="absolute inset-0 bg-navy/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <button onClick={() => saveGallery(gallery.filter((_, i) => i !== idx))} className="p-2 bg-red-500 text-white rounded-lg"><Trash2 size={20} /></button>
@@ -777,7 +916,7 @@ const AdminDashboard: React.FC = () => {
               {activeTab === 'resources' && (
                 <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                   <FileText size={48} className="mb-4 opacity-20" />
-                  <p className="text-sm italic">Additional resource management features coming soon.</p>
+                  <p className="text-sm italic">Additional resource management coming soon.</p>
                 </div>
               )}
             </div>

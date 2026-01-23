@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -27,7 +26,8 @@ import {
   BrainCircuit,
   Apple,
   FileText,
-  Clock
+  Clock,
+  Compass
 } from 'lucide-react';
 
 const FEATURED_PRODUCTS = [
@@ -48,10 +48,18 @@ const FEATURED_PRODUCTS = [
     features: ["Predictive Default Risk", "Automated Bookkeeping", "Member Voice Portal", "Financial Reporting"]
   },
   {
+    title: "AI Tourism Assistant",
+    category: "Tourism & Hospitality",
+    icon: <Compass className="w-8 h-8" />,
+    color: "innovation-orange",
+    description: "An intelligent travel companion that analyzes regional tourism data to generate personalized itineraries, suggest optimal flights, and facilitate seamless bookings.",
+    features: ["Smart Itinerary Generation", "Flight & Hotel Recommendations", "Trend Data Analysis", "Integrated Booking Support"]
+  },
+  {
     title: "AI School ERP",
     category: "Education",
     icon: <GraduationCap className="w-8 h-8" />,
-    color: "innovation-orange",
+    color: "innovation-blue",
     description: "Comprehensive administration system for schools and universities. Automates enrollment, fee collection, and institutional resource planning.",
     features: ["Financial Automation", "Student Information System", "Staff Management", "Smart Scheduling"]
   },
@@ -59,7 +67,7 @@ const FEATURED_PRODUCTS = [
     title: "AI Learning Hub (LMS)",
     category: "Education",
     icon: <Library className="w-8 h-8" />,
-    color: "innovation-blue",
+    color: "innovation-orange",
     description: "Adaptive Learning Management System. Delivers personalized curriculum, adaptive testing, and AI-assisted content creation for teachers.",
     features: ["Personalized Study Paths", "Automated Grading", "Teacher Co-pilot", "Learning Analytics"]
   },
@@ -67,7 +75,7 @@ const FEATURED_PRODUCTS = [
     title: "Automated Recruitment",
     category: "Human Resources",
     icon: <UserPlus className="w-8 h-8" />,
-    color: "innovation-orange",
+    color: "innovation-blue",
     description: "End-to-end talent acquisition. Matches CVs to JDs, conducts attitude assessments, and handles autonomous interviewing and onboarding.",
     features: ["JD Matching Engine", "Psychometric Profiling", "AI Video Interviews", "Digital Onboarding"]
   },
@@ -75,7 +83,7 @@ const FEATURED_PRODUCTS = [
     title: "Omni-Channel Voice Agents",
     category: "Customer Experience",
     icon: <MessageSquare className="w-8 h-8" />,
-    color: "innovation-blue",
+    color: "innovation-orange",
     description: "Advanced voice and text chatbots integrated with WhatsApp and Telegram. Designed to boost sales and convert leads 24/7.",
     features: ["Multi-platform Sync", "Natural Voice Synthesis", "Lead Conversion Logic", "Bilingual Capabilities"]
   },
@@ -83,7 +91,7 @@ const FEATURED_PRODUCTS = [
     title: "Leads Generation Pro",
     category: "Sales & Marketing",
     icon: <Target className="w-8 h-8" />,
-    color: "innovation-orange",
+    color: "innovation-blue",
     description: "Autonomous lead scoring and nurturing. Executes email and SMS campaigns with self-converting AI closing capabilities.",
     features: ["Intent Scoring", "Auto-Campaign Scaling", "Sentiment Analysis", "CRM Integration"]
   },
@@ -91,7 +99,7 @@ const FEATURED_PRODUCTS = [
     title: "AI Health Monitor",
     category: "Healthcare",
     icon: <Activity className="w-8 h-8" />,
-    color: "innovation-blue",
+    color: "innovation-orange",
     description: "Real-time health tracking and predictive diagnostic system for healthcare providers and remote patient monitoring.",
     features: ["Vitals Analysis", "Early Warning System", "Doctor-Patient Bridge", "History Summarization"]
   },
@@ -99,7 +107,7 @@ const FEATURED_PRODUCTS = [
     title: "Virtual Try-On",
     category: "Retail & Fashion",
     icon: <Shirt className="w-8 h-8" />,
-    color: "innovation-orange",
+    color: "innovation-blue",
     description: "AR-powered virtual fitting room using computer vision. Allows customers to try on clothes virtually, reducing returns and boosting sales.",
     features: ["Size Recommendation", "Real-time AR Overlay", "Catalog Integration", "Mobile-first Experience"]
   },
@@ -107,7 +115,7 @@ const FEATURED_PRODUCTS = [
     title: "Auto-Content Creator",
     category: "Media & Marketing",
     icon: <Share2 className="w-8 h-8" />,
-    color: "innovation-blue",
+    color: "innovation-orange",
     description: "AI-powered tool that generates content and auto-posts across all social platforms based on brand guidelines and trends.",
     features: ["Brand Voice Guardrails", "Multi-platform Scheduling", "Trend Spotting", "Visual Asset Generation"]
   },
@@ -115,7 +123,7 @@ const FEATURED_PRODUCTS = [
     title: "AI Sports Manager",
     category: "Sports & Leisure",
     icon: <Trophy className="w-8 h-8" />,
-    color: "innovation-orange",
+    color: "innovation-blue",
     description: "Performance tracking and management for athletes and clubs. Analyzes player data to optimize training and tactical decisions.",
     features: ["Tactical Simulation", "Injury Prediction", "Talent Scouting", "Performance Metrics"]
   }

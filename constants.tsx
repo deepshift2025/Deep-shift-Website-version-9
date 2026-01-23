@@ -74,9 +74,7 @@ export const INITIAL_NEWS_POSTS = [
     content: "The East African AI Summit 2025 brought together over 500 delegates from across the region to discuss the role of Agentic AI in transforming the continent's digital economy. Deep Shift AI leads presented frameworks for low-resource NLP and autonomous supply chain management.\n\nKey takeaways included the need for harmonized AI policy across the EAC and the urgent requirement for high-fidelity local language datasets to prevent a linguistic divide in AI services.",
     tag: "Event",
     images: [
-      "https://images.unsplash.com/photo-1540575861501-7ad060e39fe1?auto=format&fit=crop&q=80&w=1000",
-      "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&q=80&w=1000",
-      "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&q=80&w=1000"
+      "https://i.postimg.cc/MpTVy0tW/ssdsd.jpg"
     ]
   },
   {
