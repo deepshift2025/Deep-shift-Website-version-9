@@ -1,7 +1,12 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+
+// Polyfill process for browser environment to prevent "process is not defined" ReferenceErrors
+// Fix: Added 'any' type cast to window to check for process property
+if (typeof window !== 'undefined' && !(window as any).process) {
+  (window as any).process = { env: {} };
+}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

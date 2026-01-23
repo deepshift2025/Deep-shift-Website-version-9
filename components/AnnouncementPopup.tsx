@@ -22,26 +22,30 @@ const AnnouncementPopup: React.FC = () => {
   const navigate = useNavigate();
 
   const checkEligibility = useCallback((active: Announcement) => {
-    // 1. Permanent Lifetime Check
-    if (active.frequency === 'once') {
-      if (localStorage.getItem(`ds_announcement_permanent_${active.id}`)) return false;
-    }
-    
-    // 2. Daily Frequency Check
-    if (active.frequency === 'daily') {
-      const lastShown = localStorage.getItem(`ds_announcement_daily_${active.id}`);
-      if (lastShown) {
-        const diff = Date.now() - parseInt(lastShown);
-        if (diff < 24 * 60 * 60 * 1000) return false;
+    try {
+      // 1. Permanent Lifetime Check
+      if (active.frequency === 'once') {
+        if (localStorage.getItem(`ds_announcement_permanent_${active.id}`)) return false;
       }
-    }
+      
+      // 2. Daily Frequency Check
+      if (active.frequency === 'daily') {
+        const lastShown = localStorage.getItem(`ds_announcement_daily_${active.id}`);
+        if (lastShown) {
+          const diff = Date.now() - parseInt(lastShown);
+          if (diff < 24 * 60 * 60 * 1000) return false;
+        }
+      }
 
-    // 3. Session Check
-    if (active.frequency === 'session') {
-      if (sessionStorage.getItem(`ds_announcement_dismissed_${active.id}`)) return false;
-    }
+      // 3. Session Check
+      if (active.frequency === 'session') {
+        if (sessionStorage.getItem(`ds_announcement_dismissed_${active.id}`)) return false;
+      }
 
-    return true;
+      return true;
+    } catch (e) {
+      return true; // Fallback to showing if checks fail
+    }
   }, []);
 
   const triggerPopup = useCallback(() => {
@@ -52,43 +56,51 @@ const AnnouncementPopup: React.FC = () => {
   }, [announcement]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('ds_announcements');
-    if (saved) {
-      const parsed: Announcement[] = JSON.parse(saved);
-      const active = parsed.find(a => a.isActive);
-      
-      if (active && checkEligibility(active)) {
-        setAnnouncement(active);
+    try {
+      const saved = localStorage.getItem('ds_announcements');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const active = parsed.find(a => a.isActive);
+          
+          if (active && checkEligibility(active)) {
+            setAnnouncement(active);
 
-        // TRIGGER LOGIC
-        if (active.triggerType === 'timer') {
-          const timer = setTimeout(() => setIsVisible(true), active.triggerValue * 1000);
-          return () => clearTimeout(timer);
-        }
-
-        if (active.triggerType === 'scroll') {
-          const handleScroll = () => {
-            const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
-            if (scrollPercent >= active.triggerValue) {
-              triggerPopup();
-              window.removeEventListener('scroll', handleScroll);
+            // TRIGGER LOGIC
+            if (active.triggerType === 'timer') {
+              const timer = setTimeout(() => setIsVisible(true), (active.triggerValue || 3) * 1000);
+              return () => clearTimeout(timer);
             }
-          };
-          window.addEventListener('scroll', handleScroll);
-          return () => window.removeEventListener('scroll', handleScroll);
-        }
 
-        if (active.triggerType === 'exit') {
-          const handleExit = (e: MouseEvent) => {
-            if (e.clientY < 15) { // User moved mouse toward the tab/address bar
-              triggerPopup();
-              window.removeEventListener('mouseleave', handleExit);
+            if (active.triggerType === 'scroll') {
+              const handleScroll = () => {
+                const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+                if (scrollHeight <= 0) return;
+                const scrollPercent = (window.scrollY / scrollHeight) * 100;
+                if (scrollPercent >= (active.triggerValue || 50)) {
+                  triggerPopup();
+                  window.removeEventListener('scroll', handleScroll);
+                }
+              };
+              window.addEventListener('scroll', handleScroll);
+              return () => window.removeEventListener('scroll', handleScroll);
             }
-          };
-          window.addEventListener('mouseleave', handleExit);
-          return () => window.removeEventListener('mouseleave', handleExit);
+
+            if (active.triggerType === 'exit') {
+              const handleExit = (e: MouseEvent) => {
+                if (e.clientY < 15) { 
+                  triggerPopup();
+                  window.removeEventListener('mouseleave', handleExit);
+                }
+              };
+              window.addEventListener('mouseleave', handleExit);
+              return () => window.removeEventListener('mouseleave', handleExit);
+            }
+          }
         }
       }
+    } catch (err) {
+      console.error("Popup initialization error:", err);
     }
   }, [checkEligibility, triggerPopup]);
 

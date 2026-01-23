@@ -1,13 +1,19 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { DEEP_SHIFT_KNOWLEDGE_BASE } from '../constants/knowledgeBase';
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
  * Service to interact with the Google Gemini API for the Deep Shift Assistant.
  */
 export const getDeepShiftAssistantResponse = async (userMessage: string) => {
+  // Use process.env.API_KEY directly as per Gemini API guidelines
+  if (!process.env.API_KEY) {
+    console.warn("Gemini API Key is missing. Check your environment variables.");
+    return "The Deep Shift Assistant is currently being configured. Please contact us at info@deepshiftai.com for immediate assistance.";
+  }
+
+  // Create a new GoogleGenAI instance right before making an API call
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
   try {
     const systemInstruction = `
       You are the Deep Shift AI Lab Assistant, a professional and innovative digital representative of Deep Shift AI.
@@ -46,6 +52,7 @@ export const getDeepShiftAssistantResponse = async (userMessage: string) => {
       },
     });
 
+    // Access the .text property directly (not as a method)
     return response.text || "I'm sorry, I couldn't generate a helpful response. Please contact our support team at info@deepshiftai.com.";
   } catch (error) {
     console.error("Deep Shift Assistant API Error:", error);
@@ -57,6 +64,12 @@ export const getDeepShiftAssistantResponse = async (userMessage: string) => {
  * Intelligent site search using Gemini to map user queries to knowledge base and site sections.
  */
 export const performSiteSearch = async (query: string) => {
+  // Use process.env.API_KEY directly as per Gemini API guidelines
+  if (!process.env.API_KEY) return [];
+
+  // Create a new GoogleGenAI instance right before making an API call
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -91,6 +104,7 @@ export const performSiteSearch = async (query: string) => {
       }
     });
 
+    // Access the .text property directly (not as a method)
     return JSON.parse(response.text || "[]");
   } catch (error) {
     console.error("Search API Error:", error);
