@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Users, 
@@ -146,7 +145,7 @@ const About: React.FC = () => {
                 name: "Prisca Kuula Angela", 
                 role: "Administrator & Developer", 
                 bio: "Bsc Computer Science. Overseeing lab operations and cross-functional software development projects.", 
-                img: "https://i.postimg.cc/Gm7PNg9q/Whats_App_Image_2025_12_31_at_12_03_24_AMasad.jpg" 
+                img: "https://i.postimg.cc/PqPy8qzF/PRISCA-OMUTO.png" 
               },
               { 
                 name: "Kageiga Irene", 
